@@ -1,0 +1,61 @@
+Parameters:
+  InstanceTypeParameter:
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - m1.small
+      - m1.large
+
+  ImageId:
+    Description: Enter the ami for the ec2 to use
+    Type: String
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName #Specifiyng the SSH key to use for the EC2 instance
+    Description: Select the available keypair in the console
+
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  myInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties: 
+        ImageId: !Ref ImageId
+        SecurityGroups:
+          - !Ref InstanceSecurityGroup
+        InstanceType: !Ref InstanceTypeParameter
+        KeyName: !Ref KeyName
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            dnf update -y
+            dnf install -y httpd
+            systemctl start httpd
+            systemctl enable httpd
+            echo "Ebube Sample ec2 instance using cloudformation" > /var/www/html/index.html
+
+
+
+        Tags:
+          - Key: "Name"
+            Value: "Ebube ec2"
+Outputs:
+  Instanceid:
+    Description: Return the value of the instance ID
+    Value: !Ref myInstance
+  
+  InstancePublicIP:
+    Description: Get the public IP
+    Value: !GetAtt myInstance.PublicIp
+
